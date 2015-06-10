@@ -1,25 +1,83 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Coursera Project 1"
+output: html_document
 ---
 
+First we read our data from the working directory into R.
+```{r}
+dta<-read.csv("~/repdata-data-activity/activity.csv")
+```
+###Calculate mean number of steps taken per day
+First we can calculate the total number of steps taken per day and plot this as a histogram
+```{r}
+totsteps<-tapply(dta$steps, dta$date, sum)
+hist(totsteps)
+```
 
-## Loading and preprocessing the data
+Now we take the **mean** and **median**of the steps taken per day, removing any NA values
+```{r}
+meansteps<-tapply(dta$steps, dta$date, mean, na.rm=TRUE)
+mediansteps<-tapply(dta$steps, dta$date, mean, na.rm=TRUE)
+meansteps
+mediansteps
+```
 
+###Average daily activity pattern
+To make a plot of the average number of steps for each 5-minute interval across all days we first take the average for each interval and then plot this. this shows the interval with the highest average steps
+```{r}
+avsteps<-aggregate(dta$steps, list(dta$interval), mean, na.rm=TRUE)
+plot(avsteps[,1], avsteps[,2], type='l', xlab="5-minute intervals", ylab="average steps")
+```
 
+This shows us that the maximum average steps takes place at ***interval 835***
 
-## What is mean total number of steps taken per day?
+###Inputting missing values
+First we count the number of missing values in the whole dataset.
+After this we replace all NA values with the mean value of their respective 5-minute interval.
+```{r}
+sum(is.na(dta))
+dta2<-dta
+for (i in 1:nrow(dta2)){
+if (is.na(dta2$steps[i])){
+    dta2$steps[i] <- avsteps[which(dta2$interval[i]==avsteps$Group.1), 2]
+      }
+}
+head(dta2)
+sum(is.na(dta2))
+```
+Next we make a histogram of the total steps taken per day.
+```{r}
+totsteps2<-tapply(dta2$steps, dta2$date, sum)
+hist(totsteps2)
+meansteps2<-tapply(dta2$steps, dta2$date, mean, na.rm=TRUE)
+mediansteps2<-tapply(dta2$steps, dta2$date, mean, na.rm=TRUE)
+meansteps2
+mediansteps2
+```
+Imputing these NA values slightly alters the distribution, making it a little flatter. The peak frequency remains in the same place, however. The mean and median values for steps taken per day only change on those days that had NA values.
 
+###Finding differences between weekends and weekdays
+First convert the date variable to date type, and create a new variable that tells us whether each date is a weekend or weekday
+```{r}
+dta2$date<-as.Date(dta2$date, format="%Y-%m-%d")
+dta2$day<-weekdays(dta2$date)
+dta2$week<-c()
+for (i in 1:nrow(dta2))
+  if(dta2$day[i]=="Saturday"||dta2$day[i]=="Sunday"){
+  dta2$week[i]<- "Weekend"
+  } else{
+  dta2$week[i]<- "Weekday"
+  }
+dta2$week<-factor(dta2$week)
+```
 
+Now we can plot the average number of steps taken for each 5-minute interval across weekend and weekdays.
+```{r}
+avsteps2<-aggregate(dta$steps, list(dta2$interval, dta2$week), mean, na.rm=TRUE)
+avsteps2$Group.2<-factor(avsteps2$Group.2)
+par(mfrow=c(2,1))
+plot(avsteps2$Group.1[avsteps2$Group.2=="Weekday"], avsteps2$x[avsteps2$Group.2=="Weekday"], type='l', ylab="average steps", main="Weekday Activity", xlab="")
+plot(avsteps2$Group.1[avsteps2$Group.2=="Weekend"], avsteps2$x[avsteps2$Group.2=="Weekend"], type='l', xlab="5-minute intervals", ylab="average steps", main="Weekend Activity")
+```
 
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+So we can see that during weekends activity is on average higher later in the day.
